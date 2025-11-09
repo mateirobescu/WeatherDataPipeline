@@ -1,5 +1,4 @@
 #fetch-raw-weather-data--mateirobescu
-
 resource "aws_lambda_function" "fetch_weather" {
   function_name = "fetch-raw-weather-data--mateirobescu"
   handler       = "lambda_function.lambda_handler"
@@ -28,7 +27,6 @@ resource "aws_lambda_function" "fetch_weather" {
 }
 
 #invoke-fetch-weather-data--mateirobescu
-
 resource "aws_lambda_function" "invoke_fetch_weather" {
   function_name = "invoke-fetch-weather-data--mateirobescu"
   handler       = "lambda_function.lambda_handler"
