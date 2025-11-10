@@ -19,3 +19,8 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "dev_con_ip" {
+  description = "public ip of my laptop"
+  type        = string
+}

@@ -45,3 +45,8 @@ resource "aws_lambda_function" "invoke_fetch_weather" {
     aws_lambda_function.fetch_weather
   ]
 }
+
+resource "aws_lambda_function" "load-weather-to-rds--mateirobescu" {
+  function_name = "load-weather-to-rds--mateirobescu"
+  role          = ""
+}
