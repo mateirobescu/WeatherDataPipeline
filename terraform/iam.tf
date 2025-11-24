@@ -123,3 +123,40 @@ resource "aws_iam_role_policy_attachment" "lambda_logging_invoke" {
   role       = aws_iam_role.lambda_invoke_fetch_data_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+resource "aws_iam_policy" "lambda_vpc_access_policy" {
+  name = "lambda-vpc-access-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_invoke" {
+  role       = aws_iam_role.lambda_invoke_fetch_data_role.name
+  policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_fetch" {
+  role       = aws_iam_role.lambda_fetch_data_role.name
+  policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_load" {
+  role       = aws_iam_role.lambda_load_weather_role.name
+  policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
+}
+

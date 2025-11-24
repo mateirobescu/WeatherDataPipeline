@@ -20,11 +20,6 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "dev_con_ip" {
-  description = "public ip of my laptop"
-  type        = string
-}
-
 variable "rds_user" {
   description = "username of rds db"
   type        = string

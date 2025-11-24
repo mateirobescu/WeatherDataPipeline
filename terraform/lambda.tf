@@ -24,6 +24,11 @@ resource "aws_lambda_function" "fetch_weather" {
     aws_s3_bucket.raw_weather_data,
     aws_secretsmanager_secret.openweather_api
   ]
+
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda_sg.id]
+    subnet_ids         = [aws_subnet.private_lambda_subnet.id]
+  }
 }
 
 #invoke-fetch-weather-data--mateirobescu
@@ -44,6 +49,11 @@ resource "aws_lambda_function" "invoke_fetch_weather" {
     aws_dynamodb_table.cities,
     aws_lambda_function.fetch_weather
   ]
+
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda_sg.id]
+    subnet_ids         = [aws_subnet.private_lambda_subnet.id]
+  }
 }
 
 resource "aws_lambda_function" "load-weather-to-rds--mateirobescu" {
@@ -63,13 +73,43 @@ resource "aws_lambda_function" "load-weather-to-rds--mateirobescu" {
     aws_s3_bucket.raw_weather_data,
     aws_db_instance.weather_db
   ]
+
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda_sg.id]
+    subnet_ids         = [aws_subnet.private_lambda_subnet.id]
+  }
 }
 
-resource "aws_security_group" "lambda-load-weather-sg" {
+resource "aws_security_group_rule" "lambda_to_rds" {
+  type                     = "ingress"
+  from_port                = 3306
+  to_port                  = 3306
+  protocol                 = "tcp"
+
+  security_group_id        = aws_security_group.weather_rds_sg.id
+  source_security_group_id = aws_security_group.lambda_sg.id
+}
+
+resource "aws_security_group" "lambda_sg" {
+  name        = "lambda-sg"
+  description = "Security group for Lambda inside private subnet"
+  vpc_id      = aws_vpc.weather_vpc.id
+
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "tcp"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    self      = true
+  }
+
+  tags = {
+    Name = "lambda-sg"
   }
 }
