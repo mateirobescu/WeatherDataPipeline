@@ -130,11 +130,3 @@ resource "aws_route_table_association" "private_rds_assoc2" {
   subnet_id      = aws_subnet.private_rds_subnet2.id
   route_table_id = aws_route_table.private_rt.id
 }
-
-resource "aws_vpc_endpoint" "secretsmanager" {
-  vpc_id             = aws_vpc.weather_vpc.id
-  service_name       = "com.amazonaws.${var.region}.secretsmanager"
-  vpc_endpoint_type  = "Interface"
-  subnet_ids         = [aws_subnet.private_lambda_subnet.id]
-  security_group_ids = [aws_security_group.lambda_sg.id]
-}
