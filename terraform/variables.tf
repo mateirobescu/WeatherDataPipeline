@@ -24,3 +24,23 @@ variable "dev_con_ip" {
   description = "public ip of my laptop"
   type        = string
 }
+
+variable "rds_user" {
+  description = "username of rds db"
+  type        = string
+}
+
+variable "rds_pass" {
+  description = "password of rds db"
+  type        = string
+}
+
+variable "rds_host" {
+  description = "hostname of rds db"
+  type        = string
+}
+
+variable "rds_dbname" {
+  description = "database name of rds db"
+  type        = string
+}

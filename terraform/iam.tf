@@ -74,6 +74,45 @@ resource "aws_iam_role_policy" "lamba_invoke_fetch_data_policy_attach" {
   policy = data.aws_iam_policy_document.lambda_invoke_fetch_data_policy.json
 }
 
+data "aws_iam_policy_document" "lambda_load_weather_policy" {
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket",
+      "s3:DeleteObject"
+    ]
+    resources = [aws_s3_bucket.raw_weather_data.arn, "${aws_s3_bucket.raw_weather_data.arn}/raw/*"]
+  }
+
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.rds_weather_data_credentials.arn]
+  }
+}
+
+resource "aws_iam_role" "lambda_load_weather_role" {
+  name = "lambda_load_weather_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_load_weather_policy_attach" {
+  name   = "lambda_load_weather_policy_attach"
+  role   = aws_iam_role.lambda_load_weather_role.id
+  policy = data.aws_iam_policy_document.lambda_load_weather_policy.json
+}
+
 # Permission for logs
 resource "aws_iam_role_policy_attachment" "lambda_logging_fetch" {
   role       = aws_iam_role.lambda_fetch_data_role.name
