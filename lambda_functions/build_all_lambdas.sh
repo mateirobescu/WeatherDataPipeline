@@ -11,12 +11,14 @@ do
     ZIP_NAME="../${FUNCTION_NAME%/}.zip"
     BUILD_DIR="../build_${FUNCTION_NAME}"
 
+    rm -rf "$dir".zip
+
     echo "=== Building ${FUNCTION_NAME} ==="
 
     rm -rf "$BUILD_DIR"
     mkdir "$BUILD_DIR"
 
-    cp lambda_function.py "$BUILD_DIR"/
+    cp lambda_function.py "$BUILD_DIR"/lambda_function.py
 
     if [[ -f requirements.txt ]]; then
       echo "Installing dependencies..."
@@ -24,7 +26,7 @@ do
     fi
 
     echo "Creating ZIP package..."
-    zip -rq "$ZIP_NAME" "$BUILD_DIR"/*
+    (cd "$BUILD_DIR" && zip -rq "$ZIP_NAME" .)
 
     rm -rf "$BUILD_DIR"
 

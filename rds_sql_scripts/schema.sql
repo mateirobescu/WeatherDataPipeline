@@ -43,5 +43,3 @@ CREATE TABLE IF NOT EXISTS weather_reading (
     PRIMARY KEY (date, city_id),
     CONSTRAINT chk_weather_cityid_len CHECK ( CHAR_LENGTH(city_id) = 6 )
 );
-
-DESCRIBE countries;
