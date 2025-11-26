@@ -131,8 +131,8 @@ resource "aws_iam_policy" "lambda_vpc_access_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "ec2:CreateNetworkInterface",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface",
@@ -159,4 +159,3 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access_load" {
   role       = aws_iam_role.lambda_load_weather_role.name
   policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
 }
-
