@@ -1,6 +1,7 @@
 import datetime
 import json
 from operator import itemgetter
+from pkgutil import read_code
 
 import pymysql
 import boto3
@@ -199,7 +200,12 @@ def lambda_handler(event, context):
 	credentials = getDbCreds()
 	conn = connectToDB(*credentials)
 	
-	key = getLastS3Obj()
+	if 'Records' in event:
+		records = event['Records'][0]
+		key = records["s3"]["object"]["key"]
+	else:
+		key = getLastS3Obj()
+		
 	if key is None:
 		print("No raw weather objects found.")
 		return {"statusCode": 200, "body": "No files to process"}
@@ -215,12 +221,13 @@ def lambda_handler(event, context):
 			addWeatherReading(cursor, data)
 			
 			cursor.execute("""
-			SELECT *
+			SELECT co.common_name, ci.name, wr.date
 			FROM countries co
 			JOIN cities ci
 				ON co.id = ci.country_id
 			JOIN weather_readings wr
 				ON ci.id = wr.city_id
+			ORDER BY wr.date DESC
 			;
 			""")
 			res = cursor.fetchall()
