@@ -1,9 +1,7 @@
 import csv
 import datetime
 import io
-from sys import prefix
 from typing import Any
-
 import boto3
 from botocore.exceptions import ClientError
 import json
@@ -42,7 +40,10 @@ def connectToDB(user, password, host, dbname):
 
 def parseColumns(columns: list[str], table_cols: dict) -> str:
 	if len(columns) == 1 and columns[0] == "*":
-		return "*"
+		columns = []
+		for table in ('countries', 'cities', 'weather_readings'):
+			for col in table_cols[table]:
+				columns.append(f"{table}:{col}")
 	
 	select_cols = []
 	for column in columns:
@@ -128,7 +129,7 @@ def lambda_handler(event, context):
 				table = table[0]
 				cursor.execute(f"DESCRIBE `{table}`")
 				columns = cursor.fetchall()
-				table_cols[table] = set(col[0] for col in columns)
+				table_cols[table] = [col[0] for col in columns]
 			
 			if 'columns' not in event:
 				return {"statusCode": 404, "body": "No columns specified!"}
