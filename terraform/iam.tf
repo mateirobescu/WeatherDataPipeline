@@ -77,17 +77,21 @@ resource "aws_iam_role_policy" "lamba_invoke_fetch_data_policy_attach" {
 #lambda_load_weather_to_rds
 data "aws_iam_policy_document" "lambda_load_weather_policy" {
   statement {
-    actions = [
-      "s3:GetObject",
-      "s3:ListBucket",
-      "s3:DeleteObject"
-    ]
-    resources = [aws_s3_bucket.raw_weather_data.arn, "${aws_s3_bucket.raw_weather_data.arn}/raw/*"]
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.rds_weather_data_credentials.arn]
   }
 
   statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.rds_weather_data_credentials.arn]
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.raw_weather_data.arn]
+  }
+
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:DeleteObject"
+    ]
+    resources = ["${aws_s3_bucket.raw_weather_data.arn}/raw/*"]
   }
 }
 
@@ -122,8 +126,22 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   }
 
   statement {
-    actions   = ["s3:PutObject", "s3:PutObjectAcl", "s3:ListBucket "]
-    resources = [aws_s3_bucket.raw_weather_data.arn, "${aws_s3_bucket.raw_weather_data.arn}/csv/*"]
+    actions   = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.raw_weather_data.arn
+    ]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["csv/*"]
+    }
+  }
+
+  statement {
+    actions   = ["s3:PutObject", "s3:PutObjectAcl"]
+    resources = [
+      "${aws_s3_bucket.raw_weather_data.arn}/csv/*"
+    ]
   }
 }
 
