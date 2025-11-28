@@ -1,0 +1,4 @@
+{
+  "name": "test",
+  "columns": ["countries:common_name", "cities:name", "weather_readings:date"]
+}

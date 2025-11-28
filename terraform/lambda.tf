@@ -113,3 +113,28 @@ resource "aws_security_group" "lambda_sg" {
     Name = "lambda-sg"
   }
 }
+
+#export-to-csv-weather-data--mateirobescu
+resource "aws_lambda_function" "export_to_csv" {
+  function_name = "export-to-csv-weather-data--mateirobescu"
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.13"
+
+  filename = "${path.module}/../lambda_functions/export_to_csv.zip"
+  role     = aws_iam_role.lambda_export_to_csv_role.arn
+
+  timeout          = 30
+  memory_size      = 256
+  source_code_hash = filebase64sha256("${path.module}/../lambda_functions/export_to_csv.zip")
+
+  depends_on = [
+    aws_iam_role.lambda_export_to_csv_role,
+    aws_s3_bucket.raw_weather_data,
+    aws_db_instance.weather_db
+  ]
+
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda_sg.id]
+    subnet_ids         = [aws_subnet.private_lambda_subnet.id]
+  }
+}

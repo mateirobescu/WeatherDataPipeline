@@ -74,6 +74,7 @@ resource "aws_iam_role_policy" "lamba_invoke_fetch_data_policy_attach" {
   policy = data.aws_iam_policy_document.lambda_invoke_fetch_data_policy.json
 }
 
+#lambda_load_weather_to_rds
 data "aws_iam_policy_document" "lambda_load_weather_policy" {
   statement {
     actions = [
@@ -112,6 +113,43 @@ resource "aws_iam_role_policy" "lambda_load_weather_policy_attach" {
   role   = aws_iam_role.lambda_load_weather_role.id
   policy = data.aws_iam_policy_document.lambda_load_weather_policy.json
 }
+
+#lambda_export_to_csv
+data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.rds_weather_data_credentials.arn]
+  }
+
+  statement {
+    actions   = ["s3:PutObject", "s3:PutObjectAcl", "s3:ListBucket "]
+    resources = [aws_s3_bucket.raw_weather_data.arn, "${aws_s3_bucket.raw_weather_data.arn}/csv/*"]
+  }
+}
+
+resource "aws_iam_role" "lambda_export_to_csv_role" {
+  name = "lambda_export_to_csv_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_export_to_csv_role_policy_attach" {
+  name   = "lambda_export_to_csv_role_policy_attach"
+  role   = aws_iam_role.lambda_export_to_csv_role.id
+  policy = data.aws_iam_policy_document.lambda_export_to_csv_policy.json
+}
+
 
 # Permission for logs
 resource "aws_iam_role_policy_attachment" "lambda_logging_fetch" {
@@ -157,5 +195,10 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access_fetch" {
 
 resource "aws_iam_role_policy_attachment" "lambda_vpc_access_load" {
   role       = aws_iam_role.lambda_load_weather_role.name
+  policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_csv" {
+  role       = aws_iam_role.lambda_export_to_csv_role.name
   policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
 }

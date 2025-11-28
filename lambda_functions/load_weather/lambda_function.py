@@ -1,7 +1,6 @@
 import datetime
 import json
 from operator import itemgetter
-from pkgutil import read_code
 
 import pymysql
 import boto3
