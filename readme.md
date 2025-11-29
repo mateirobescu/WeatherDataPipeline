@@ -24,7 +24,7 @@ This project implements a complete serverless ETL system on AWS:
 The entire system runs inside a custom VPC, uses private subnets, and communicates securely using Secrets Manager, IAM roles, and Security Groups.
 
 ### History
-The ETL has a Get History lambda which fetches daily weather data for a specific city dating back to 01/01/2025 to give more data for better analysis.
+The project has a Get History lambda which fetches daily weather data for a specific city dating back to 01/01/2025 to give more data for better analysis.
 <p align="center">
   <img src="./docs/history_architecture.png" width="492">
 </p>
