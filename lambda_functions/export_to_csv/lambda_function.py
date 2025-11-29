@@ -49,17 +49,17 @@ def parseColumns(columns: list[str], table_cols: dict) -> str:
 	for column in columns:
 		table, col = column.split(':')
 		if table not in table_cols:
-			return {"statusCode": 404, "body": f"Table {table} doesn't exist!"}
+			raise Exception(f"Table {table} doesn't exist!")
 		
 		if col not in table_cols[table]:
-			return {"statusCode": 404, "body": f"Column {col} doesn't exist!"}
+			raise Exception(f"Column {col} doesn't exist!")
 		
 		select_cols.append(f"`{table}`.`{col}` AS `{table}.{col}`")
 	
 	return ','.join(select_cols)
 
 
-def generateKey(s3: boto3.client, name: str) -> str:
+def generateKey(s3_client: boto3.client, name: str) -> str:
 	if not name:
 		name = 'query-data'
 	if '_' in name:
@@ -68,7 +68,7 @@ def generateKey(s3: boto3.client, name: str) -> str:
 	number = 0
 	date = datetime.datetime.now(tz=datetime.UTC).date().strftime("%Y-%m-%d")
 	
-	paginator = s3.get_paginator("list_objects_v2")
+	paginator = s3_client.get_paginator("list_objects_v2")
 	
 	for page in paginator.paginate(Bucket=BUCKET_NAME, Prefix='csv/'):
 		for obj in page.get("Contents", []):
@@ -99,20 +99,24 @@ def generateKey(s3: boto3.client, name: str) -> str:
 
 
 def export_to_csv(query_data: tuple[tuple[Any]], name: str) -> None:
-	s3 = boto3.client('s3')
-	key = generateKey(s3, name)
+	s3_client = boto3.client('s3')
+	key = generateKey(s3_client, name)
 	
 	csv_buffer = io.StringIO()
 	csv_writer = csv.writer(csv_buffer)
 	
 	for row in query_data:
 		csv_writer.writerow(row)
-		
-	s3.put_object(
-		Bucket=BUCKET_NAME,
-		Key=key,
-		Body=csv_buffer.getvalue()
-	)
+	
+	try:
+		s3_client.put_object(
+			Bucket=BUCKET_NAME,
+			Key=key,
+			Body=csv_buffer.getvalue()
+		)
+	except ClientError as e:
+		raise Exception(f"Bucket {BUCKET_NAME} could not export csv: {e}")
+	
 
 
 def lambda_handler(event, context):
@@ -134,7 +138,10 @@ def lambda_handler(event, context):
 			if 'columns' not in event:
 				return {"statusCode": 404, "body": "No columns specified!"}
 			
-			select_statement = parseColumns(event['columns'], table_cols)
+			try:
+				select_statement = parseColumns(event['columns'], table_cols)
+			except Exception as e:
+				return {"statusCode": 400, "body": f"{e}"}
 			
 			cursor.execute(f"""
 			SELECT {select_statement}
@@ -153,11 +160,13 @@ def lambda_handler(event, context):
 			if 'name' in event:
 				name = event['name']
 				
-			export_to_csv(query_data, name)
+			try:
+				export_to_csv(query_data, name)
+			except Exception as e:
+				return {"statusCode": 400, "body": f"{e}"}
 	
 	finally:
 		conn.close()
-		
 	
-	return {"statusCode": 200, "body": "Success!"}
+	return {"statusCode": 200, "body": "Export to csv was a success!!"}
 	
