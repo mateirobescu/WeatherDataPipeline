@@ -30,7 +30,7 @@ def lambda_handler(event, context):
 	
 	KEY = get_api_secret(secret_name, region_name)
 	s3_client = boto3.client('s3')
-	BUCKET = "raw-weather-data--mateirobescu"
+	bucket_name = "raw-weather-data--mateirobescu"
 	
 	city_id = event["city_id"]
 	
@@ -61,14 +61,14 @@ def lambda_handler(event, context):
 			
 			try:
 				s3_client.put_object(
-					Bucket=BUCKET,
+					Bucket=bucket_name,
 					Key=file_name,
 					Body=json.dumps(template, indent=2),
 					ContentType="application/json"
 				)
 			except ClientError as e:
 				failed = True
-				print(f"Bucket {BUCKET} failed to put weather for city {city_id} at timestamp {curr_time}!")
+				print(f"Bucket {bucket_name} failed to put weather for city {city_id} at timestamp {curr_time}!")
 		else:
 			failed = True
 			print(f"OpenWeatherAPI History failed for city {city_id} at timestamp {curr_time}!")

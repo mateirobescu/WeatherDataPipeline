@@ -8,7 +8,7 @@ import requests
 from botocore.exceptions import ClientError
 from pymysql.cursors import Cursor
 
-BUCKET_NAME = "raw-weather-data--mateirobescu"
+BUCKET = "raw-weather-data--mateirobescu"
 
 def getDbCreds():
 	session = boto3.session.Session()
@@ -29,6 +29,7 @@ def getDbCreds():
 	
 	return secret_data["USER"], secret_data["PASSWORD"], secret_data["HOST"], secret_data["DBNAME"]
 
+
 def connectToDB(user, password, host, dbname):
 	return pymysql.connect(
 		host=host,
@@ -38,19 +39,20 @@ def connectToDB(user, password, host, dbname):
 		connect_timeout=10
 	)
 
+
 def getLastS3Obj() -> str|None:
-	s3 = boto3.client('s3')
+	s3_client = boto3.client('s3')
 	try:
-		response = s3.list_objects_v2(
-			Bucket=BUCKET_NAME,
+		response = s3_client.list_objects_v2(
+			Bucket=BUCKET,
 			Prefix="raw/"
 		)
-	except Exception as e:
-		print(f"Error accessing S3 bucket: {e}")
+	except ClientError as e:
+		print(f"Error accessing Bucket {BUCKET}: {e}")
 		return None
 	
 	if 'Contents' not in response:
-		print(f"No objects found in bucket.")
+		print(f"No objects found in Bucket {BUCKET}.")
 		return None
 	
 	latest_object = max(response['Contents'], key=itemgetter('LastModified'))
@@ -58,34 +60,33 @@ def getLastS3Obj() -> str|None:
 	
 
 def getS3ContentFromKey(key: str) -> dict|None:
-	s3 = boto3.client('s3')
+	s3_client = boto3.client('s3')
 	
 	try:
-		response = s3.get_object(
-			Bucket=BUCKET_NAME,
+		response = s3_client.get_object(
+			Bucket=BUCKET,
 			Key = key
-		
 		)
 		file_content = response['Body'].read().decode('utf-8')
 		content_json = json.loads(file_content)
 		
 		return content_json
 		
-	except s3.exceptions.NoSuchKey:
-		print(f"Error: Object with key '{key}' not found in the bucket'.")
+	except s3_client.exceptions.NoSuchKey:
+		print(f"Error: Object with key '{key}' not found in the Bucket: {BUCKET}'.")
 		return None
-	except Exception as e:
-		print(f"An error occurred while getting the object: {e}")
+	except ClientError as e:
+		print(f"An error occurred while getting the object with key({key}) from Bucket({BUCKET}): {e}")
 		return None
 	
 	
 def deleteS3Object(key: str):
-	s3 = boto3.client('s3')
+	s3_client = boto3.client('s3')
 	
 	try:
-		s3.delete_object(Bucket=BUCKET_NAME, Key=key)
-	except Exception as e:
-		print(f"Failed to delete {key}: {e}")
+		s3_client.delete_object(Bucket=BUCKET, Key=key)
+	except ClientError as e:
+		print(f"Failed to delete {key} from Bucket({BUCKET}): {e}")
 
 
 def addCountry(cursor: Cursor, countryCode: str) -> None:
@@ -93,11 +94,11 @@ def addCountry(cursor: Cursor, countryCode: str) -> None:
 	response = requests.get(f"{URL}/{countryCode}", timeout=10)
 	
 	if response.status_code != 200:
-		raise Exception("Country API could not be accessed!")
+		raise Exception(f"Country API for {countryCode} could not be accessed!")
 	
 	data = response.json()
 	if not data:
-		raise ValueError("Invalid country code!")
+		raise ValueError(f"Invalid country code for {countryCode}!")
 	data = data[0]
 	
 	official_name = data["name"]["official"]
@@ -122,14 +123,14 @@ def addCountry(cursor: Cursor, countryCode: str) -> None:
 		raise RuntimeError(f"Failed to insert country {countryCode}: {e}")
 
 
-def addCity(cursor: Cursor, weatherData: dict) -> bool:
+def addCity(cursor: Cursor, weatherData: dict) -> None:
 	iso2_code = weatherData['sys']['country']
 	
 	cursor.execute("""
 	SELECT id
 	FROM countries
 	WHERE UPPER(iso2_code) = UPPER(%s);
-	""", (iso2_code, ))
+	""", (iso2_code,))
 	
 	cityId = str(weatherData['id'])
 	countryId = cursor.fetchone()[0]
@@ -152,20 +153,20 @@ def addCity(cursor: Cursor, weatherData: dict) -> bool:
 		raise RuntimeError(f"Failed to insert city {name}({cityId}): {e}")
 
 
-def addWeatherReading(cursor: Cursor, data: dict):
-	timestamp = data['dt']
+def addWeatherReading(cursor: Cursor, weatherData: dict):
+	timestamp = weatherData['dt']
 	date = datetime.datetime.fromtimestamp(timestamp, tz=datetime.UTC).date()
-	cityId = data['id']
-	main = data['weather'][0]['main']
-	description = data['weather'][0]['description']
-	temperature = data['main']['temp']
-	feelsLike = data['main']['feels_like']
-	temperatureMin = data['main']['temp_min']
-	temperatureMax = data['main']['temp_max']
-	windSpeed = data['wind']['speed']
-	windDeg = data['wind'].get('deg')
-	humidity = data['main']['humidity']
-	pressure = data['main']['pressure']
+	cityId = weatherData['id']
+	main = weatherData['weather'][0]['main']
+	description = weatherData['weather'][0]['description']
+	temperature = weatherData['main']['temp']
+	feelsLike = weatherData['main']['feels_like']
+	temperatureMin = weatherData['main']['temp_min']
+	temperatureMax = weatherData['main']['temp_max']
+	windSpeed = weatherData['wind']['speed']
+	windDeg = weatherData['wind'].get('deg')
+	humidity = weatherData['main']['humidity']
+	pressure = weatherData['main']['pressure']
 	
 	try:
 		cursor.execute(
@@ -206,9 +207,7 @@ def lambda_handler(event, context):
 		key = getLastS3Obj()
 		
 	if key is None:
-		print("No raw weather objects found.")
-		return {"statusCode": 200, "body": "No files to process"}
-	
+		return {"statusCode": 400, "body": "No files to process"}
 	data = getS3ContentFromKey(key)
 	
 	try:
@@ -219,22 +218,9 @@ def lambda_handler(event, context):
 			addCity(cursor, data)
 			addWeatherReading(cursor, data)
 			
-			cursor.execute("""
-			SELECT co.common_name, ci.name, wr.date
-			FROM countries co
-			JOIN cities ci
-				ON co.id = ci.country_id
-			JOIN weather_readings wr
-				ON ci.id = wr.city_id
-			ORDER BY wr.date DESC
-			;
-			""")
-			res = cursor.fetchall()
-			print(res)
 			conn.commit()
-			
 			deleteS3Object(key)
 	finally:
 		conn.close()
 	
-	return {"statusCode": 200, "body": "Query executed successfully"}
+	return {"statusCode": 200, "body": f"Object({key}) was handled!"}

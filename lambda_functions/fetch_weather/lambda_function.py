@@ -49,19 +49,19 @@ def lambda_handler(event, context):
 	if not ascii_city_name:
 		ascii_city_name = "unknown"
 	
-	file_name = f"raw/{city_id}-{ascii_city_name}_{datetime.datetime.now(tz=datetime.UTC).strftime('%Y-%m-%d')}.json"
+	key = f"raw/{city_id}-{ascii_city_name}_{datetime.datetime.now(tz=datetime.UTC).strftime('%Y-%m-%d')}.json"
 	
 	try:
 		s3_client.put_object(
 			Bucket=BUCKET,
-			Key=file_name,
+			Key=key,
 			Body=json.dumps(data, indent=2),
 			ContentType="application/json"
 		)
 	except ClientError as e:
 		return {
 			'statusCode': 400,
-			'body': f"Error putting object with key({file_name}) in bucket({BUCKET}): {e}"
+			'body': f"Error putting object with key({key}) in bucket({BUCKET}): {e}"
 		}
 	
 	return {
