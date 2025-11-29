@@ -3,6 +3,8 @@ set -e
 
 echo "Starting Lambda build process..."
 
+cd "$(cd "$(dirname "$0")" && pwd)"
+
 for dir in */
 do
   (
@@ -11,7 +13,7 @@ do
     ZIP_NAME="../${FUNCTION_NAME%/}.zip"
     BUILD_DIR="../build_${FUNCTION_NAME}"
 
-    rm -rf "$dir".zip
+    rm -rf "../$FUNCTION_NAME.zip"
 
     echo "=== Building ${FUNCTION_NAME} ==="
 
