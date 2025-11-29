@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import json
 import pymysql
 
-BUCKET_NAME = "raw-weather-data--mateirobescu"
+BUCKET = "weather-data-bucket--mateirobescu"
 
 def getDbCreds():
 	session = boto3.session.Session()
@@ -70,7 +70,7 @@ def generateKey(s3_client: boto3.client, name: str) -> str:
 	
 	paginator = s3_client.get_paginator("list_objects_v2")
 	
-	for page in paginator.paginate(Bucket=BUCKET_NAME, Prefix='csv/'):
+	for page in paginator.paginate(Bucket=BUCKET, Prefix='csv/'):
 		for obj in page.get("Contents", []):
 			curr_key = obj["Key"].split('/')[-1].split('.')[0]
 			elems = curr_key.split('_')
@@ -110,12 +110,12 @@ def export_to_csv(query_data: tuple[tuple[Any]], name: str) -> None:
 	
 	try:
 		s3_client.put_object(
-			Bucket=BUCKET_NAME,
+			Bucket=BUCKET,
 			Key=key,
 			Body=csv_buffer.getvalue()
 		)
 	except ClientError as e:
-		raise Exception(f"Bucket {BUCKET_NAME} could not export csv: {e}")
+		raise Exception(f"Bucket {BUCKET} could not export csv: {e}")
 	
 
 

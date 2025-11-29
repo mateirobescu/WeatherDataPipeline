@@ -1,5 +1,5 @@
-resource "aws_s3_bucket" "raw_weather_data" {
-  bucket        = "raw-weather-data--mateirobescu"
+resource "aws_s3_bucket" "weather_data_bucket" {
+  bucket        = "weather-data-bucket--mateirobescu"
   force_destroy = true
 
   tags = {
@@ -8,7 +8,7 @@ resource "aws_s3_bucket" "raw_weather_data" {
 }
 
 resource "aws_s3_bucket_notification" "raw_bucket_notifications" {
-  bucket = aws_s3_bucket.raw_weather_data.bucket
+  bucket = aws_s3_bucket.weather_data_bucket.bucket
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.load-weather-to-rds--mateirobescu.arn
@@ -26,5 +26,5 @@ resource "aws_lambda_permission" "allow_s3_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.load-weather-to-rds--mateirobescu.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.raw_weather_data.arn
+  source_arn    = aws_s3_bucket.weather_data_bucket.arn
 }

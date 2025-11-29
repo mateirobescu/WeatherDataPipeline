@@ -7,7 +7,7 @@ data "aws_iam_policy_document" "lambda_fetch_data_policy" {
 
   statement {
     actions   = ["s3:PutObject", "s3:PutObjectAcl"]
-    resources = ["${aws_s3_bucket.raw_weather_data.arn}/raw/*"]
+    resources = ["${aws_s3_bucket.weather_data_bucket.arn}/raw/*"]
   }
 }
 
@@ -83,7 +83,7 @@ data "aws_iam_policy_document" "lambda_load_weather_policy" {
 
   statement {
     actions   = ["s3:ListBucket"]
-    resources = [aws_s3_bucket.raw_weather_data.arn]
+    resources = [aws_s3_bucket.weather_data_bucket.arn]
   }
 
   statement {
@@ -91,7 +91,7 @@ data "aws_iam_policy_document" "lambda_load_weather_policy" {
       "s3:GetObject",
       "s3:DeleteObject"
     ]
-    resources = ["${aws_s3_bucket.raw_weather_data.arn}/raw/*"]
+    resources = ["${aws_s3_bucket.weather_data_bucket.arn}/raw/*"]
   }
 }
 
@@ -128,7 +128,7 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   statement {
     actions = ["s3:ListBucket"]
     resources = [
-      aws_s3_bucket.raw_weather_data.arn
+      aws_s3_bucket.weather_data_bucket.arn
     ]
     condition {
       test     = "StringLike"
@@ -140,7 +140,7 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   statement {
     actions = ["s3:PutObject", "s3:PutObjectAcl"]
     resources = [
-      "${aws_s3_bucket.raw_weather_data.arn}/csv/*"
+      "${aws_s3_bucket.weather_data_bucket.arn}/csv/*"
     ]
   }
 }
@@ -166,18 +166,6 @@ resource "aws_iam_role_policy" "lambda_export_to_csv_role_policy_attach" {
   name   = "lambda_export_to_csv_role_policy_attach"
   role   = aws_iam_role.lambda_export_to_csv_role.id
   policy = data.aws_iam_policy_document.lambda_export_to_csv_policy.json
-}
-
-
-# Permission for logs
-resource "aws_iam_role_policy_attachment" "lambda_logging_fetch" {
-  role       = aws_iam_role.lambda_fetch_data_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_logging_invoke" {
-  role       = aws_iam_role.lambda_invoke_fetch_data_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_policy" "lambda_vpc_access_policy" {
@@ -218,5 +206,10 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access_load" {
 
 resource "aws_iam_role_policy_attachment" "lambda_vpc_access_csv" {
   role       = aws_iam_role.lambda_export_to_csv_role.name
+  policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_history" {
+  role       = aws_iam_role.lambda_fetch_data_role.name
   policy_arn = aws_iam_policy.lambda_vpc_access_policy.arn
 }

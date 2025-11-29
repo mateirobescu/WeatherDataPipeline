@@ -42,7 +42,7 @@ def lambda_handler(event, context):
 	city_name = data["name"]
 	
 	s3_client = boto3.client('s3')
-	BUCKET = "raw-weather-data--mateirobescu"
+	BUCKET = "weather-data-bucket--mateirobescu"
 	
 	normalized_text = unicodedata.normalize("NFKD", city_name.lower().replace(' ', '-'))
 	ascii_city_name = normalized_text.encode("ascii", "ignore").decode("ascii")

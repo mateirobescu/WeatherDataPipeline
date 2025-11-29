@@ -14,14 +14,14 @@ resource "aws_lambda_function" "fetch_weather" {
   environment {
     variables = {
       REGION = var.region
-      BUCKET = aws_s3_bucket.raw_weather_data.bucket
+      BUCKET = aws_s3_bucket.weather_data_bucket.bucket
       SECRET = aws_secretsmanager_secret.openweather_api.name
     }
   }
 
   depends_on = [
     aws_iam_role.lambda_fetch_data_role,
-    aws_s3_bucket.raw_weather_data,
+    aws_s3_bucket.weather_data_bucket,
     aws_secretsmanager_secret.openweather_api
   ]
 
@@ -56,6 +56,7 @@ resource "aws_lambda_function" "invoke_fetch_weather" {
   }
 }
 
+#load-weather-to-rds--mateirobescu
 resource "aws_lambda_function" "load-weather-to-rds--mateirobescu" {
   function_name = "load-weather-to-rds--mateirobescu"
   handler       = "lambda_function.lambda_handler"
@@ -70,7 +71,7 @@ resource "aws_lambda_function" "load-weather-to-rds--mateirobescu" {
 
   depends_on = [
     aws_iam_role.lambda_load_weather_role,
-    aws_s3_bucket.raw_weather_data,
+    aws_s3_bucket.weather_data_bucket,
     aws_db_instance.weather_db
   ]
 
@@ -129,7 +130,7 @@ resource "aws_lambda_function" "export_to_csv" {
 
   depends_on = [
     aws_iam_role.lambda_export_to_csv_role,
-    aws_s3_bucket.raw_weather_data,
+    aws_s3_bucket.weather_data_bucket,
     aws_db_instance.weather_db
   ]
 
@@ -139,7 +140,8 @@ resource "aws_lambda_function" "export_to_csv" {
   }
 }
 
-resource "aws_lambda_function" "get_history" {
+#get-history-weather-data--mateirobescu
+resource "aws_lambda_function" "lambda_get_history" {
   function_name = "get-history-weather-data--mateirobescu"
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.13"
@@ -154,14 +156,14 @@ resource "aws_lambda_function" "get_history" {
   environment {
     variables = {
       REGION = var.region
-      BUCKET = aws_s3_bucket.raw_weather_data.bucket
+      BUCKET = aws_s3_bucket.weather_data_bucket.bucket
       SECRET = aws_secretsmanager_secret.openweather_api.name
     }
   }
 
   depends_on = [
     aws_iam_role.lambda_fetch_data_role,
-    aws_s3_bucket.raw_weather_data,
+    aws_s3_bucket.weather_data_bucket,
     aws_secretsmanager_secret.openweather_api
   ]
 

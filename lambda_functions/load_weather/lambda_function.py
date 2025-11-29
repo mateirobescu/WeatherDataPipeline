@@ -8,7 +8,7 @@ import requests
 from botocore.exceptions import ClientError
 from pymysql.cursors import Cursor
 
-BUCKET = "raw-weather-data--mateirobescu"
+BUCKET = "weather-data-bucket--mateirobescu"
 
 def getDbCreds():
 	session = boto3.session.Session()
