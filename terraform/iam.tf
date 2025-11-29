@@ -126,7 +126,7 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   }
 
   statement {
-    actions   = ["s3:ListBucket"]
+    actions = ["s3:ListBucket"]
     resources = [
       aws_s3_bucket.raw_weather_data.arn
     ]
@@ -138,7 +138,7 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   }
 
   statement {
-    actions   = ["s3:PutObject", "s3:PutObjectAcl"]
+    actions = ["s3:PutObject", "s3:PutObjectAcl"]
     resources = [
       "${aws_s3_bucket.raw_weather_data.arn}/csv/*"
     ]

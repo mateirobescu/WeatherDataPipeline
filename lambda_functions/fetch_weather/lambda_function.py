@@ -2,8 +2,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 import requests
-from datetime import datetime
-
+import datetime
 
 def get_api_secret(secret_name, region_name):
 	session = boto3.session.Session()
@@ -39,7 +38,8 @@ def lambda_handler(event, context):
 		s3 = boto3.client('s3')
 		bucket_name = "raw-weather-data--mateirobescu"
 		
-		file_name = f"raw/{city_id}-{city_name.encode("ascii", "ignore").decode("ascii").lower()}_{datetime.utcnow().strftime('%Y_%m_%d__%H_%M_%S')}.json"
+		file_name = f"raw/{city_id}-{city_name.replace(' ', '-').encode("ascii", "ignore").decode("ascii").lower()}_{datetime.datetime.now(tz=datetime.UTC).strftime('%Y-%m-%d')}.json"
+		
 		
 		s3.put_object(
 			Bucket=bucket_name,

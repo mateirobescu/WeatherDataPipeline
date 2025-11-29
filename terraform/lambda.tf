@@ -138,3 +138,35 @@ resource "aws_lambda_function" "export_to_csv" {
     subnet_ids         = [aws_subnet.private_lambda_subnet.id]
   }
 }
+
+resource "aws_lambda_function" "get_history" {
+  function_name = "get-history-weather-data--mateirobescu"
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.13"
+
+  filename = "${path.module}/../lambda_functions/get_history.zip"
+  role     = aws_iam_role.lambda_fetch_data_role.arn
+
+  timeout          = 300
+  memory_size      = 256
+  source_code_hash = filebase64sha256("${path.module}/../lambda_functions/get_history.zip")
+
+  environment {
+    variables = {
+      REGION = var.region
+      BUCKET = aws_s3_bucket.raw_weather_data.bucket
+      SECRET = aws_secretsmanager_secret.openweather_api.name
+    }
+  }
+
+  depends_on = [
+    aws_iam_role.lambda_fetch_data_role,
+    aws_s3_bucket.raw_weather_data,
+    aws_secretsmanager_secret.openweather_api
+  ]
+
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda_sg.id]
+    subnet_ids         = [aws_subnet.private_lambda_subnet.id]
+  }
+}
