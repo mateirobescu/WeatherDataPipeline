@@ -138,7 +138,7 @@ data "aws_iam_policy_document" "lambda_export_to_csv_policy" {
   }
 
   statement {
-    actions = ["s3:PutObject", "s3:PutObjectAcl"]
+    actions = ["s3:PutObject", "s3:GetObject"]
     resources = [
       "${aws_s3_bucket.weather_data_bucket.arn}/csv/*"
     ]

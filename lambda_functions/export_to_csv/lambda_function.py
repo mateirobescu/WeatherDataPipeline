@@ -6,8 +6,21 @@ import boto3
 from botocore.exceptions import ClientError
 import json
 import pymysql
+import os
 
 BUCKET = "weather-data-bucket--mateirobescu"
+
+
+def validate_api_key(event):
+	headers = event.get('headers', {})
+
+	incoming_key = headers.get('x-api-key') or headers.get('X-Api-Key')
+	
+	expected_key = os.environ.get('APP_API_KEY')
+	
+	if incoming_key != expected_key:
+		return False
+	return True
 
 def getDbCreds():
 	session = boto3.session.Session()
@@ -98,7 +111,7 @@ def generateKey(s3_client: boto3.client, name: str) -> str:
 
 
 
-def export_to_csv(query_data: tuple[tuple[Any]], name: str) -> None:
+def export_to_csv(query_data: list[tuple[Any]], name: str) -> str | None:
 	s3_client = boto3.client('s3')
 	key = generateKey(s3_client, name)
 	
@@ -117,11 +130,51 @@ def export_to_csv(query_data: tuple[tuple[Any]], name: str) -> None:
 	except ClientError as e:
 		raise Exception(f"Bucket {BUCKET} could not export csv: {e}")
 	
+	return key
+
+
+def get_body(event: dict) -> dict:
+	
+	body_str = event.get('body')
+	
+	if not body_str:
+		raise ValueError("Body doesn't exist!")
+		
+	try:
+		return json.loads(body_str)
+
+	except json.JSONDecodeError:
+		raise ValueError("Invalid body!")
+
+
+def generate_download_link(file_key: str) -> str:
+	s3_client = boto3.client('s3')
+	
+	try:
+		download_url = s3_client.generate_presigned_url(
+			ClientMethod='get_object',
+			Params={
+				'Bucket': BUCKET,
+				'Key': file_key
+			},
+			ExpiresIn=60
+		)
+		
+		return download_url
+	except Exception as e:
+		raise Exception("The download link could not be generated!")
 
 
 def lambda_handler(event, context):
+	if not validate_api_key(event):
+		return {"statusCode": 403, "body": "Invalid API key!"}
+	
 	credentials = getDbCreds()
 	conn = connectToDB(*credentials)
+	try:
+		body = get_body(event)
+	except ValueError as e:
+		return {"statusCode": 404, "body": e}
 	
 	try:
 		with conn.cursor() as cursor:
@@ -135,11 +188,11 @@ def lambda_handler(event, context):
 				columns = cursor.fetchall()
 				table_cols[table] = [col[0] for col in columns]
 			
-			if 'columns' not in event:
+			if 'columns' not in body:
 				return {"statusCode": 404, "body": "No columns specified!"}
 			
 			try:
-				select_statement = parseColumns(event['columns'], table_cols)
+				select_statement = parseColumns(body['columns'], table_cols)
 			except Exception as e:
 				return {"statusCode": 400, "body": f"{e}"}
 			
@@ -157,16 +210,27 @@ def lambda_handler(event, context):
 
 			query_data = [header] + list(rows)
 			name = ''
-			if 'name' in event:
-				name = event['name']
+			if 'name' in body:
+				name = body['name']
 				
 			try:
-				export_to_csv(query_data, name)
+				file_key = export_to_csv(query_data, name)
+			except Exception as e:
+				return {"statusCode": 400, "body": f"{e}"}
+			
+			try:
+				download_link = generate_download_link(file_key)
 			except Exception as e:
 				return {"statusCode": 400, "body": f"{e}"}
 	
 	finally:
 		conn.close()
 	
-	return {"statusCode": 200, "body": "Export to csv was a success!!"}
+	return {
+		"statusCode": 200,
+		"body": json.dumps({
+			"message": "Export to csv was a success!",
+			"download_link": download_link,
+		}
+	)}
 	

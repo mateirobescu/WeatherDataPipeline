@@ -4,7 +4,6 @@ import datetime
 import boto3
 from botocore.exceptions import ClientError
 
-
 def get_api_secret(secret_name, region_name):
 	session = boto3.session.Session()
 	client = session.client(

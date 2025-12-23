@@ -22,3 +22,5 @@ venv/
 *.log
 
 test.*
+vars.sh
+aliases.sh

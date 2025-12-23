@@ -128,6 +128,12 @@ resource "aws_lambda_function" "export_to_csv" {
   memory_size      = 256
   source_code_hash = filebase64sha256("${path.module}/../lambda_functions/export_to_csv.zip")
 
+  environment {
+    variables = {
+      APP_API_KEY = random_password.app_api_key.result
+    }
+  }
+
   depends_on = [
     aws_iam_role.lambda_export_to_csv_role,
     aws_s3_bucket.weather_data_bucket,
