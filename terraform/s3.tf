@@ -28,3 +28,16 @@ resource "aws_lambda_permission" "allow_s3_invoke" {
   principal     = "s3.amazonaws.com"
   source_arn    = aws_s3_bucket.weather_data_bucket.arn
 }
+
+resource "aws_s3_bucket_cors_configuration" "weather_data_cors" {
+  # Replace 'aws_s3_bucket.main.id' with the actual reference to your bucket resource
+  bucket = aws_s3_bucket.weather_data_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = []
+    max_age_seconds = 3000
+  }
+}
